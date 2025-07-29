@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  trades       Trade[]
+  
+  @@index([email])
+}
+
+model Trade {
+  id            String    @id @default(uuid())
+  userId        String
+  tradeDate     DateTime
+  symbol        String
+  side          Side
+  entryPrice    Decimal
+  exitPrice     Decimal?
+  stopLoss      Decimal?
+  leverage      Decimal   @default(1)
+  positionSize  Decimal
+  pnl           Decimal?
+  rrr           Decimal?
+  durationSec   Int?
+  notes         String?
+  exitDate      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags          TradeTag[]
+  
+  @@index([userId])
+  @@index([tradeDate])
+  @@index([symbol])
+}
+
+model Tag {
+  id            String    @id @default(uuid())
+  name          String    @unique
+  descriptionMD String    @default("")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  trades        TradeTag[]
+  strategyNote  StrategyNote?
+  
+  @@index([name])
+}
+
+model TradeTag {
+  tradeId       String
+  tagId         String
+  createdAt     DateTime  @default(now())
+  
+  trade         Trade     @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  tag           Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  
+  @@id([tradeId, tagId])
+  @@index([tagId])
+}
+
+model StrategyNote {
+  tagId         String    @id
+  contentMD     String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  tag           Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+}
+
+enum Side {
+  LONG
+  SHORT
+}

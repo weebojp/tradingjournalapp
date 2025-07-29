@@ -1,0 +1,54 @@
+{
+  "name": "trading-journal-app",
+  "version": "1.0.0",
+  "description": "テスト駆動開発を徹底したトレーディングジャーナルアプリ",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest --watch",
+    "test:ci": "jest --coverage --watchAll=false",
+    "test:unit": "jest --testPathPattern=unit",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:e2e": "jest --testPathPattern=e2e",
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "lint": "eslint src/ tests/",
+    "lint:fix": "eslint src/ tests/ --fix",
+    "coverage": "jest --coverage",
+    "coverage:report": "jest --coverage && open coverage/lcov-report/index.html",
+    "coverage:check": "node scripts/coverage-check.js",
+    "tdd:watch": "node scripts/tdd-watch.js",
+    "tdd:generate": "node scripts/test-generator.js",
+    "prepare": "chmod +x scripts/*.js"
+  },
+  "keywords": [
+    "trading",
+    "journal",
+    "tdd",
+    "testing"
+  ],
+  "author": "TDD Development Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^29.5.8",
+    "chokidar": "^3.5.3",
+    "eslint": "^8.55.0",
+    "eslint-plugin-jest": "^27.6.0",
+    "jest": "^29.7.0",
+    "jest-environment-node": "^29.7.0",
+    "nodemon": "^3.0.2",
+    "supertest": "^6.3.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.12.0",
+    "bcryptjs": "^2.4.3",
+    "chart.js": "^4.5.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "prisma": "^6.12.0",
+    "react-chartjs-2": "^5.3.0"
+  }
+}

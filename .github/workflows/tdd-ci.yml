@@ -1,0 +1,107 @@
+name: TDD Continuous Integration
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: TDD テスト実行
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: ソースコードをチェックアウト
+      uses: actions/checkout@v4
+
+    - name: Node.js ${{ matrix.node-version }} をセットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: 依存関係をインストール
+      run: npm ci
+
+    - name: ESLintでコード品質をチェック
+      run: npm run lint
+
+    - name: ユニットテストを実行
+      run: npm run test:unit
+
+    - name: 統合テストを実行
+      run: npm run test:integration
+
+    - name: E2Eテストを実行
+      run: npm run test:e2e
+
+    - name: テストカバレッジを生成
+      run: npm run coverage
+
+    - name: テストカバレッジをアップロード
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+
+    - name: カバレッジレポートをコメント
+      uses: romeovs/lcov-reporter-action@v0.3.1
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        lcov-file: ./coverage/lcov.info
+        delete-old-comments: true
+
+  quality-gate:
+    name: 品質ゲート
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: ソースコードをチェックアウト
+      uses: actions/checkout@v4
+
+    - name: Node.js をセットアップ
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: 依存関係をインストール
+      run: npm ci
+
+    - name: カバレッジ閾値をチェック
+      run: |
+        npm run coverage
+        # カバレッジが90%未満の場合は失敗
+        coverage=$(node -p "
+          const fs = require('fs');
+          const coverage = JSON.parse(fs.readFileSync('./coverage/coverage-summary.json'));
+          Math.min(
+            coverage.total.lines.pct,
+            coverage.total.functions.pct,
+            coverage.total.branches.pct,
+            coverage.total.statements.pct
+          );
+        ")
+        echo "現在のカバレッジ: ${coverage}%"
+        if (( $(echo "$coverage < 90" | bc -l) )); then
+          echo "❌ カバレッジが90%未満です (${coverage}%)"
+          exit 1
+        fi
+        echo "✅ カバレッジ閾値をクリアしました (${coverage}%)"
+
+    - name: テスト結果のサマリー
+      run: |
+        echo "## 🧪 TDDテスト結果" >> $GITHUB_STEP_SUMMARY
+        echo "✅ すべてのテストが成功しました" >> $GITHUB_STEP_SUMMARY
+        echo "✅ コード品質チェックが成功しました" >> $GITHUB_STEP_SUMMARY
+        echo "✅ カバレッジ閾値をクリアしました" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔴🟢🔵 TDDサイクル完了" >> $GITHUB_STEP_SUMMARY
+        echo "このプルリクエストはTDD原則に従って開発されました" >> $GITHUB_STEP_SUMMARY 

@@ -13,7 +13,20 @@ router.use(authMiddleware);
 router.get('/', async (req, res) => {
   try {
     const userId = req.user.id;
-    const { limit = 100, offset = 0, symbol, side, startDate, endDate } = req.query;
+    const { 
+      limit = 100, 
+      offset = 0, 
+      symbol, 
+      side, 
+      startDate, 
+      endDate,
+      pnlFrom,
+      pnlTo,
+      positionSizeFrom,
+      positionSizeTo,
+      minRiskReward,
+      maxRiskReward
+    } = req.query;
     
     const options = {
       limit: parseInt(limit),
@@ -24,6 +37,12 @@ router.get('/', async (req, res) => {
     if (side) options.side = side;
     if (startDate) options.startDate = new Date(startDate);
     if (endDate) options.endDate = new Date(endDate);
+    if (pnlFrom) options.pnlFrom = parseFloat(pnlFrom);
+    if (pnlTo) options.pnlTo = parseFloat(pnlTo);
+    if (positionSizeFrom) options.positionSizeFrom = parseFloat(positionSizeFrom);
+    if (positionSizeTo) options.positionSizeTo = parseFloat(positionSizeTo);
+    if (minRiskReward) options.minRiskReward = parseFloat(minRiskReward);
+    if (maxRiskReward) options.maxRiskReward = parseFloat(maxRiskReward);
     
     const trades = await dbService.findTradesByUser(userId, options);
     

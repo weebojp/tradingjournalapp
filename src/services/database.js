@@ -55,7 +55,20 @@ class DatabaseService {
   }
   
   async findTradesByUser(userId, options = {}) {
-    const { startDate, endDate, symbol, side, limit = 100, offset = 0 } = options;
+    const { 
+      startDate, 
+      endDate, 
+      symbol, 
+      side, 
+      pnlFrom, 
+      pnlTo, 
+      positionSizeFrom, 
+      positionSizeTo, 
+      minRiskReward, 
+      maxRiskReward, 
+      limit = 100, 
+      offset = 0 
+    } = options;
     
     const where = { userId };
     
@@ -68,7 +81,22 @@ class DatabaseService {
     if (symbol) where.symbol = symbol;
     if (side) where.side = side;
     
-    return await this.prisma.trade.findMany({
+    // P&L range filter
+    if (pnlFrom !== undefined || pnlTo !== undefined) {
+      where.pnl = {};
+      if (pnlFrom !== undefined) where.pnl.gte = pnlFrom;
+      if (pnlTo !== undefined) where.pnl.lte = pnlTo;
+    }
+    
+    // Position size range filter
+    if (positionSizeFrom !== undefined || positionSizeTo !== undefined) {
+      where.positionSize = {};
+      if (positionSizeFrom !== undefined) where.positionSize.gte = positionSizeFrom;
+      if (positionSizeTo !== undefined) where.positionSize.lte = positionSizeTo;
+    }
+    
+    // Get trades first without risk-reward filter
+    let trades = await this.prisma.trade.findMany({
       where,
       include: {
         tags: {
@@ -77,10 +105,46 @@ class DatabaseService {
           }
         }
       },
-      orderBy: { tradeDate: 'desc' },
-      take: limit,
-      skip: offset
+      orderBy: { tradeDate: 'desc' }
     });
+    
+    // Apply risk-reward ratio filter if specified
+    if (minRiskReward !== undefined || maxRiskReward !== undefined) {
+      trades = trades.filter(trade => {
+        // Calculate risk-reward ratio for closed trades
+        if (!trade.pnl || !trade.entryPrice || !trade.exitPrice) {
+          return false; // Skip open trades or trades without proper data
+        }
+        
+        const pnl = parseFloat(trade.pnl);
+        const entryPrice = parseFloat(trade.entryPrice);
+        const exitPrice = parseFloat(trade.exitPrice);
+        
+        // Calculate risk based on entry price (assuming 1% risk for simplicity)
+        const risk = entryPrice * 0.01; // This is a simplified calculation
+        const reward = Math.abs(pnl);
+        
+        if (risk === 0) return false;
+        
+        const riskRewardRatio = reward / risk;
+        
+        let passesFilter = true;
+        if (minRiskReward !== undefined && riskRewardRatio < minRiskReward) {
+          passesFilter = false;
+        }
+        if (maxRiskReward !== undefined && riskRewardRatio > maxRiskReward) {
+          passesFilter = false;
+        }
+        
+        return passesFilter;
+      });
+    }
+    
+    // Apply pagination after filtering
+    const startIndex = offset;
+    const endIndex = startIndex + limit;
+    
+    return trades.slice(startIndex, endIndex);
   }
   
   async updateTrade(id, data) {
@@ -104,44 +168,38 @@ class DatabaseService {
   }
   
   async getTradeStatsByUser(userId) {
+    // Get all trades with necessary fields for advanced statistics
     const trades = await this.prisma.trade.findMany({
-      where: { 
-        userId,
-        pnl: { not: null }
+      where: { userId },
+      select: { 
+        pnl: true,
+        tradeDate: true,
+        entryPrice: true,
+        exitPrice: true,
+        positionSize: true,
+        side: true,
+        symbol: true
       },
-      select: { pnl: true }
+      orderBy: { tradeDate: 'asc' }
     });
     
-    const totalTrades = await this.prisma.trade.count({
-      where: { userId }
-    });
+    // Convert to format expected by statistics module
+    const tradesForStats = trades
+      .filter(trade => trade.pnl !== null) // Only include closed trades for PnL calculations
+      .map(trade => ({
+        pnl: parseFloat(trade.pnl),
+        tradeDate: trade.tradeDate,
+        entryPrice: trade.entryPrice,
+        exitPrice: trade.exitPrice,
+        positionSize: trade.positionSize,
+        side: trade.side,
+        symbol: trade.symbol
+      }));
+
+    // Import and use advanced statistics calculation
+    const { calculateAdvancedTradeStats } = require('../utils/statistics');
     
-    let totalPnL = 0;
-    let winCount = 0;
-    let totalWin = 0;
-    let lossCount = 0;
-    let totalLoss = 0;
-    
-    trades.forEach(trade => {
-      const pnl = parseFloat(trade.pnl);
-      totalPnL += pnl;
-      
-      if (pnl > 0) {
-        winCount++;
-        totalWin += pnl;
-      } else if (pnl < 0) {
-        lossCount++;
-        totalLoss += Math.abs(pnl);
-      }
-    });
-    
-    return {
-      totalTrades,
-      totalPnL,
-      winRate: totalTrades > 0 ? winCount / totalTrades : 0,
-      avgWin: winCount > 0 ? totalWin / winCount : 0,
-      avgLoss: lossCount > 0 ? totalLoss / lossCount : 0
-    };
+    return calculateAdvancedTradeStats(tradesForStats);
   }
   
   // Tag operations

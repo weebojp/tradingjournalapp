@@ -6,8 +6,12 @@ import { CloseTradeModal } from './CloseTradeModal';
 import { EditTradeModal } from './EditTradeModal';
 import { ConfirmationDialog } from '../common/ConfirmationDialog';
 import { ErrorDisplay } from '../common/ErrorDisplay';
+import { StatsCard } from '../dashboard/StatsCard';
+import { AdvancedStatsCard } from '../dashboard/AdvancedStatsCard';
 import { useUndo } from '../../contexts/UndoContext';
 import { STRINGS } from '../../constants/strings';
+import { calculateTradeStatsFromList } from '../../utils/tradeStatsCalculator';
+import { ActiveFilters } from './ActiveFilters';
 
 interface PaginationInfo {
   currentPage: number;
@@ -21,6 +25,12 @@ interface Filters {
   side: 'ALL' | 'LONG' | 'SHORT';
   dateFrom: string;
   dateTo: string;
+  pnlFrom: string;
+  pnlTo: string;
+  positionSizeFrom: string;
+  positionSizeTo: string;
+  minRiskReward: string;
+  maxRiskReward: string;
 }
 
 export const TradesHistoryPage: React.FC = () => {
@@ -55,10 +65,17 @@ export const TradesHistoryPage: React.FC = () => {
     symbol: '',
     side: 'ALL',
     dateFrom: '',
-    dateTo: ''
+    dateTo: '',
+    pnlFrom: '',
+    pnlTo: '',
+    positionSizeFrom: '',
+    positionSizeTo: '',
+    minRiskReward: '',
+    maxRiskReward: ''
   });
 
   const [jumpToPage, setJumpToPage] = useState('');
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   const loadTrades = useCallback(async (page: number = 1, currentFilters: Filters = filters) => {
     try {
@@ -89,13 +106,47 @@ export const TradesHistoryPage: React.FC = () => {
         filterParams.endDate = currentFilters.dateTo;
       }
 
-      const [tradesResponse, statsResponse] = await Promise.all([
-        apiClient.getTrades(filterParams),
-        apiClient.getTradeStats()
-      ]);
+      // P&L range filters
+      if (currentFilters.pnlFrom) {
+        filterParams.pnlFrom = parseFloat(currentFilters.pnlFrom);
+      }
+      
+      if (currentFilters.pnlTo) {
+        filterParams.pnlTo = parseFloat(currentFilters.pnlTo);
+      }
+
+      // Position size range filters
+      if (currentFilters.positionSizeFrom) {
+        filterParams.positionSizeFrom = parseFloat(currentFilters.positionSizeFrom);
+      }
+      
+      if (currentFilters.positionSizeTo) {
+        filterParams.positionSizeTo = parseFloat(currentFilters.positionSizeTo);
+      }
+
+      // Risk-reward ratio filters
+      if (currentFilters.minRiskReward) {
+        filterParams.minRiskReward = parseFloat(currentFilters.minRiskReward);
+      }
+      
+      if (currentFilters.maxRiskReward) {
+        filterParams.maxRiskReward = parseFloat(currentFilters.maxRiskReward);
+      }
+
+      // Get filtered trades
+      const tradesResponse = await apiClient.getTrades(filterParams);
+      
+      // Calculate stats based on filtered results (get all trades for proper stats calculation)
+      const allFilteredTrades = await apiClient.getTrades({ 
+        ...filterParams, 
+        limit: 10000, // Get all trades for accurate stats
+        offset: 0 
+      });
+      
+      const calculatedStats = calculateTradeStatsFromList(allFilteredTrades.trades);
 
       setTrades(tradesResponse.trades);
-      setStats(statsResponse);
+      setStats(calculatedStats);
       
       // Update pagination info
       setPagination(prev => ({
@@ -241,9 +292,25 @@ export const TradesHistoryPage: React.FC = () => {
       symbol: '',
       side: 'ALL',
       dateFrom: '',
-      dateTo: ''
+      dateTo: '',
+      pnlFrom: '',
+      pnlTo: '',
+      positionSizeFrom: '',
+      positionSizeTo: '',
+      minRiskReward: '',
+      maxRiskReward: ''
     };
     handleFiltersChange(resetFilters);
+  };
+
+  const clearSingleFilter = (filterKey: keyof Filters) => {
+    const updatedFilters = { ...filters };
+    if (filterKey === 'side') {
+      updatedFilters[filterKey] = 'ALL';
+    } else {
+      updatedFilters[filterKey] = '';
+    }
+    handleFiltersChange(updatedFilters);
   };
 
   const handleJumpToPage = () => {
@@ -264,36 +331,105 @@ export const TradesHistoryPage: React.FC = () => {
 
       {/* Stats Summary */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="text-sm font-medium text-gray-500">Total Trades</div>
-            <div className="text-2xl font-bold text-gray-900">{pagination.totalTrades}</div>
+        <div className="mb-8">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Performance Summary</h2>
+          {/* Basic Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <StatsCard
+              title="Total Trades"
+              value={pagination.totalTrades.toString()}
+              icon={
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              }
+            />
+            
+            <StatsCard
+              title="Win Rate"
+              value={`${(stats.winRate * 100).toFixed(1)}%`}
+              trend={stats.winRate >= 0.5 ? 'positive' : 'negative'}
+              icon={
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+            />
+            
+            <StatsCard
+              title="Total P&L"
+              value={`$${(Number(stats.totalPnL) || 0).toFixed(2)}`}
+              trend={(Number(stats.totalPnL) || 0) >= 0 ? 'positive' : 'negative'}
+              icon={
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                </svg>
+              }
+            />
+            
+            <StatsCard
+              title="Average Win"
+              value={`$${(stats.avgWin || 0).toFixed(2)}`}
+              trend={stats.avgWin && stats.avgWin > 0 ? 'positive' : 'neutral'}
+              icon={
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              }
+            />
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="text-sm font-medium text-gray-500">Win Rate</div>
-            <div className={`text-2xl font-bold ${stats.winRate >= 0.5 ? 'text-green-600' : 'text-red-600'}`}>
-              {(stats.winRate * 100).toFixed(1)}%
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="text-sm font-medium text-gray-500">Total P&L</div>
-            <div className={`text-2xl font-bold ${stats.totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              ${stats.totalPnL.toFixed(2)}
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="text-sm font-medium text-gray-500">Avg Trade</div>
-            <div className="text-2xl font-bold text-gray-900">
-              ${stats.totalTrades > 0 ? (stats.totalPnL / stats.totalTrades).toFixed(2) : '0.00'}
-            </div>
+
+          {/* Advanced Stats */}
+          <h3 className="text-md font-medium text-gray-700 mb-3">Advanced Metrics</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AdvancedStatsCard
+              title="Profit Factor"
+              value={stats.profitFactor === Infinity ? '∞' : stats.profitFactor.toFixed(2)}
+              trend={stats.profitFactor > 1 ? 'positive' : stats.profitFactor < 1 ? 'negative' : 'neutral'}
+              description="Ratio of gross profit to gross loss. Values > 1.0 indicate profitable trading."
+            />
+
+            <AdvancedStatsCard
+              title="Payoff Ratio"
+              value={stats.payoffRatio ? (stats.payoffRatio === Infinity ? '∞' : stats.payoffRatio.toFixed(2)) : '0.00'}
+              trend={stats.payoffRatio && stats.payoffRatio > 2 ? 'positive' : stats.payoffRatio && stats.payoffRatio < 1 ? 'negative' : 'neutral'}
+              description="Average win divided by average loss. Higher values indicate better risk-reward balance."
+            />
+
+            <AdvancedStatsCard
+              title="Max Drawdown"
+              value={`$${(stats.largestLoss || 0).toFixed(2)}`}
+              trend="negative"
+              description="Largest single loss recorded. Lower absolute values indicate better risk management."
+            />
           </div>
         </div>
       )}
 
       {/* Filters */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Filters</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-medium text-gray-900">Advanced Filters</h2>
+          <button
+            onClick={() => setFiltersExpanded(!filtersExpanded)}
+            className="flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <span className="mr-2">{filtersExpanded ? 'Hide' : 'Show'} Filters</span>
+            <svg 
+              className={`w-4 h-4 transform transition-transform ${filtersExpanded ? 'rotate-180' : ''}`}
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+        
+        {filtersExpanded && (
+          <>
+            {/* Basic Filters Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Symbol</label>
             <input
@@ -337,23 +473,119 @@ export const TradesHistoryPage: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          
-          <div className="flex items-end space-x-2">
+        </div>
+
+        {/* Advanced Filters Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          {/* P&L Range */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">P&L From ($)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={filters.pnlFrom}
+                onChange={(e) => setFilters(prev => ({ ...prev, pnlFrom: e.target.value }))}
+                placeholder="Min P&L"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">P&L To ($)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={filters.pnlTo}
+                onChange={(e) => setFilters(prev => ({ ...prev, pnlTo: e.target.value }))}
+                placeholder="Max P&L"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Position Size Range */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Position From</label>
+              <input
+                type="number"
+                step="0.01"
+                value={filters.positionSizeFrom}
+                onChange={(e) => setFilters(prev => ({ ...prev, positionSizeFrom: e.target.value }))}
+                placeholder="Min Size"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Position To</label>
+              <input
+                type="number"
+                step="0.01"
+                value={filters.positionSizeTo}
+                onChange={(e) => setFilters(prev => ({ ...prev, positionSizeTo: e.target.value }))}
+                placeholder="Max Size"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Risk-Reward Ratio Range */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Min R:R Ratio</label>
+              <input
+                type="number"
+                step="0.1"
+                value={filters.minRiskReward}
+                onChange={(e) => setFilters(prev => ({ ...prev, minRiskReward: e.target.value }))}
+                placeholder="e.g. 1.0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Max R:R Ratio</label>
+              <input
+                type="number"
+                step="0.1"
+                value={filters.maxRiskReward}
+                onChange={(e) => setFilters(prev => ({ ...prev, maxRiskReward: e.target.value }))}
+                placeholder="e.g. 5.0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-500">
+            Use advanced filters to narrow down your trade results by P&L, position size, and risk-reward ratios.
+          </div>
+          <div className="flex items-center space-x-2">
             <button
               onClick={() => handleFiltersChange(filters)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
             >
-              Apply
+              Apply Filters
             </button>
             <button
               onClick={clearFilters}
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
             >
-              Clear
+              Clear All
             </button>
           </div>
         </div>
+          </>
+        )}
       </div>
+
+      {/* Active Filters Display */}
+      <ActiveFilters
+        filters={filters}
+        onClearFilter={clearSingleFilter}
+        onClearAll={clearFilters}
+      />
 
       {/* Error Display */}
       {error && (

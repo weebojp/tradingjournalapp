@@ -73,11 +73,36 @@ export interface TradesResponse {
 }
 
 export interface TradeStats {
+  // Basic metrics
   totalTrades: number;
   totalPnL: number;
   winRate: number;
   avgWin: number;
   avgLoss: number;
+  
+  // Advanced metrics
+  profitFactor: number;
+  expectancy: number;
+  payoffRatio: number;
+  winLossRatio: number;
+  recoveryFactor: number;
+  
+  // Streak analysis
+  maxConsecutiveWins: number;
+  maxConsecutiveLosses: number;
+  currentStreak: number;
+  currentStreakType: 'win' | 'loss' | 'breakeven' | 'none';
+  
+  // Extreme trades
+  largestWin: number;
+  largestLoss: number;
+  
+  // Detailed metrics
+  grossProfit: number;
+  grossLoss: number;
+  winningTrades: number;
+  losingTrades: number;
+  breakEvenTrades: number;
 }
 
 export class ApiClient {

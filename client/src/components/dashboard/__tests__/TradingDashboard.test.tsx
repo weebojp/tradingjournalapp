@@ -7,6 +7,64 @@ import { apiClient } from '../../../services/api';
 jest.mock('../../../services/api');
 const mockApiClient = apiClient as jest.Mocked<typeof apiClient>;
 
+// Mock react-router-dom Link component
+jest.mock('react-router-dom', () => ({
+  Link: ({ children, to, ...props }: any) => <a href={to} {...props}>{children}</a>
+}));
+
+// Mock context providers
+jest.mock('../../../contexts/HelpContext', () => ({
+  useHelp: () => ({ toggleHelpMode: jest.fn() })
+}));
+
+jest.mock('../../../contexts/UndoContext', () => ({
+  useUndoHelpers: () => ({ createTradeDeleteUndo: jest.fn() })
+}));
+
+jest.mock('../../common/ConfirmationDialog', () => ({
+  useConfirmationDialog: () => ({ 
+    showConfirmation: jest.fn(),
+    ConfirmationDialog: () => null
+  })
+}));
+
+jest.mock('../../common/ErrorDisplay', () => ({
+  useErrorState: () => ({
+    error: null,
+    handleError: jest.fn(),
+    clearError: jest.fn(),
+    retry: jest.fn()
+  })
+}));
+
+jest.mock('../../help/KeyboardShortcutsPanel', () => ({
+  useKeyboardShortcutsPanel: () => ({
+    isOpen: false,
+    showShortcuts: jest.fn(),
+    hideShortcuts: jest.fn()
+  })
+}));
+
+jest.mock('../../../hooks/useKeyboardShortcuts', () => ({
+  useKeyboardShortcuts: jest.fn(),
+  createCommonShortcuts: () => []
+}));
+
+jest.mock('../../../hooks/useLoadingState', () => ({
+  useLoadingState: () => ({
+    loadingState: { steps: [], isLoading: false },
+    startLoading: jest.fn(),
+    updateStepProgress: jest.fn(),
+    completeLoading: jest.fn(),
+    resetLoading: jest.fn()
+  })
+}));
+
+// Helper function to render component
+const renderComponent = (component: React.ReactElement) => {
+  return render(component);
+};
+
 const mockTrades = [
   {
     id: '1',
@@ -47,7 +105,23 @@ const mockStats = {
   totalPnL: 376.125,
   winRate: 100,
   avgWin: 188.06,
-  avgLoss: 0
+  avgLoss: 0,
+  profitFactor: Infinity,
+  expectancy: 188.06,
+  payoffRatio: Infinity,
+  winLossRatio: Infinity,
+  maxConsecutiveWins: 2,
+  maxConsecutiveLosses: 0,
+  currentStreak: 2,
+  currentStreakType: 'win' as const,
+  largestWin: 300.00,
+  largestLoss: 0,
+  recoveryFactor: Infinity,
+  grossProfit: 376.125,
+  grossLoss: 0,
+  winningTrades: 2,
+  losingTrades: 0,
+  breakEvenTrades: 0
 };
 
 describe('TradingDashboard', () => {
@@ -59,7 +133,7 @@ describe('TradingDashboard', () => {
     mockApiClient.getTrades.mockImplementation(() => new Promise(() => {}));
     mockApiClient.getTradeStats.mockImplementation(() => new Promise(() => {}));
 
-    render(<TradingDashboard />);
+    renderComponent(<TradingDashboard />);
 
     expect(screen.getByText(/loading dashboard.../i)).toBeInTheDocument();
   });
@@ -71,7 +145,7 @@ describe('TradingDashboard', () => {
     });
     mockApiClient.getTradeStats.mockResolvedValueOnce(mockStats);
 
-    render(<TradingDashboard />);
+    renderComponent(<TradingDashboard />);
 
     await waitFor(() => {
       expect(screen.getByText('Trading Dashboard')).toBeInTheDocument();
@@ -89,7 +163,7 @@ describe('TradingDashboard', () => {
     });
     mockApiClient.getTradeStats.mockResolvedValueOnce(mockStats);
 
-    render(<TradingDashboard />);
+    renderComponent(<TradingDashboard />);
 
     await waitFor(() => {
       expect(screen.getByText('Total Trades')).toBeInTheDocument();
@@ -106,7 +180,7 @@ describe('TradingDashboard', () => {
     });
     mockApiClient.getTradeStats.mockResolvedValueOnce(mockStats);
 
-    render(<TradingDashboard />);
+    renderComponent(<TradingDashboard />);
 
     await waitFor(() => {
       expect(screen.getByText('Recent Trades')).toBeInTheDocument();
@@ -125,10 +199,26 @@ describe('TradingDashboard', () => {
       totalPnL: 0,
       winRate: 0,
       avgWin: 0,
-      avgLoss: 0
+      avgLoss: 0,
+      profitFactor: 0,
+      expectancy: 0,
+      payoffRatio: 0,
+      winLossRatio: 0,
+      maxConsecutiveWins: 0,
+      maxConsecutiveLosses: 0,
+      currentStreak: 0,
+      currentStreakType: 'none' as const,
+      largestWin: 0,
+      largestLoss: 0,
+      recoveryFactor: 0,
+      grossProfit: 0,
+      grossLoss: 0,
+      winningTrades: 0,
+      losingTrades: 0,
+      breakEvenTrades: 0
     });
 
-    render(<TradingDashboard />);
+    renderComponent(<TradingDashboard />);
 
     await waitFor(() => {
       expect(screen.getByText('0')).toBeInTheDocument(); // Total Trades
@@ -141,7 +231,7 @@ describe('TradingDashboard', () => {
     mockApiClient.getTrades.mockRejectedValueOnce(new Error('API Error'));
     mockApiClient.getTradeStats.mockRejectedValueOnce(new Error('API Error'));
 
-    render(<TradingDashboard />);
+    renderComponent(<TradingDashboard />);
 
     await waitFor(() => {
       expect(screen.getByText(/error loading dashboard/i)).toBeInTheDocument();
@@ -155,7 +245,7 @@ describe('TradingDashboard', () => {
     });
     mockApiClient.getTradeStats.mockResolvedValueOnce(mockStats);
 
-    render(<TradingDashboard />);
+    renderComponent(<TradingDashboard />);
 
     await waitFor(() => {
       expect(screen.getByText('$376.13')).toBeInTheDocument();
@@ -174,7 +264,7 @@ describe('TradingDashboard', () => {
     });
     mockApiClient.getTradeStats.mockResolvedValueOnce(negativeStats);
 
-    render(<TradingDashboard />);
+    renderComponent(<TradingDashboard />);
 
     await waitFor(() => {
       expect(screen.getByText('-$150.00')).toBeInTheDocument();
@@ -194,7 +284,7 @@ describe('TradingDashboard', () => {
     });
     mockApiClient.getTradeStats.mockResolvedValueOnce(mockStats);
 
-    render(<TradingDashboard />);
+    renderComponent(<TradingDashboard />);
 
     await waitFor(() => {
       expect(screen.getByText('Recent Trades')).toBeInTheDocument();
@@ -215,7 +305,7 @@ describe('TradingDashboard', () => {
     });
     mockApiClient.getTradeStats.mockResolvedValue(mockStats);
 
-    render(<TradingDashboard />);
+    renderComponent(<TradingDashboard />);
 
     await waitFor(() => {
       expect(screen.getByText('Trading Dashboard')).toBeInTheDocument();

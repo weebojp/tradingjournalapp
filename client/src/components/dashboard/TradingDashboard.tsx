@@ -7,6 +7,7 @@ import { AddTradeModal } from '../trades/AddTradeModal';
 import { CloseTradeModal } from '../trades/CloseTradeModal';
 import { TradeDetailModal } from '../trades/TradeDetailModal';
 import { EditTradeModal } from '../trades/EditTradeModal';
+import { AdvancedStatsCard } from './AdvancedStatsCard';
 import { HelpButton } from '../help/HelpButton';
 import { HelpTooltip } from '../help/HelpTooltip';
 import { OnboardingTour } from '../help/OnboardingTour';
@@ -389,12 +390,14 @@ export const TradingDashboard: React.FC = () => {
         </div>
       </HelpTooltip>
 
-      {/* Stats Cards */}
+      {/* Basic Stats Cards */}
       <HelpTooltip
         id="stats-cards"
         content={STRINGS.HELP_STATS_CARDS}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" data-tour="stats-cards">
+        <div className="mb-8">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Performance Overview</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6" data-tour="stats-cards">
         <StatsCard
           title={STRINGS.TOTAL_TRADES}
           value={stats?.totalTrades.toString() || '0'}
@@ -437,6 +440,55 @@ export const TradingDashboard: React.FC = () => {
             </svg>
           }
         />
+          </div>
+
+          {/* Advanced Stats Cards */}
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Advanced Analytics</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AdvancedStatsCard
+              title="Profit Factor"
+              value={stats?.profitFactor ? (stats.profitFactor === Infinity ? '∞' : stats.profitFactor.toFixed(2)) : '0.00'}
+              trend={stats?.profitFactor && stats.profitFactor > 1 ? 'positive' : stats?.profitFactor && stats.profitFactor < 1 ? 'negative' : 'neutral'}
+              description="Ratio of gross profit to gross loss. Values > 1.0 indicate profitable trading."
+            />
+
+            <AdvancedStatsCard
+              title="Max Drawdown"
+              value={formatCurrency(stats?.largestLoss || 0)}
+              trend="negative"
+              description="Largest single loss recorded. Lower absolute values indicate better risk management."
+            />
+
+            <AdvancedStatsCard
+              title="Win Streak"
+              value={`${stats?.maxConsecutiveWins || 0} wins`}
+              subtitle={stats?.currentStreakType === 'win' ? `Current: ${stats?.currentStreak}` : undefined}
+              trend={stats?.maxConsecutiveWins && stats.maxConsecutiveWins > 3 ? 'positive' : 'neutral'}
+              description="Maximum number of consecutive winning trades achieved."
+            />
+
+            <AdvancedStatsCard
+              title="Payoff Ratio"
+              value={stats?.payoffRatio ? (stats.payoffRatio === Infinity ? '∞' : stats.payoffRatio.toFixed(2)) : '0.00'}
+              trend={stats?.payoffRatio && stats.payoffRatio > 2 ? 'positive' : stats?.payoffRatio && stats.payoffRatio < 1 ? 'negative' : 'neutral'}
+              description="Average win divided by average loss. Higher values indicate better risk-reward balance."
+            />
+
+            <AdvancedStatsCard
+              title="Recovery Factor"
+              value={stats?.recoveryFactor ? (stats.recoveryFactor === Infinity ? '∞' : stats.recoveryFactor.toFixed(2)) : '0.00'}
+              trend={stats?.recoveryFactor && stats.recoveryFactor > 2 ? 'positive' : stats?.recoveryFactor && stats.recoveryFactor < 1 ? 'negative' : 'neutral'}
+              description="Net profit divided by maximum drawdown. Measures ability to recover from losses."
+            />
+
+            <AdvancedStatsCard
+              title="Loss Streak"
+              value={`${stats?.maxConsecutiveLosses || 0} losses`}
+              subtitle={stats?.currentStreakType === 'loss' ? `Current: ${stats?.currentStreak}` : undefined}
+              trend={stats?.maxConsecutiveLosses && stats.maxConsecutiveLosses > 5 ? 'negative' : 'neutral'}
+              description="Maximum number of consecutive losing trades. Lower values indicate better consistency."
+            />
+          </div>
         </div>
       </HelpTooltip>
 

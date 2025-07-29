@@ -238,7 +238,227 @@ function calculateHourlyStats(trades) {
   return stats;
 }
 
+// Advanced statistics for competitive trading journal features
+function calculateConsecutiveStreaks(trades) {
+  if (trades.length === 0) {
+    return {
+      maxConsecutiveWins: 0,
+      maxConsecutiveLosses: 0,
+      currentStreak: 0,
+      currentStreakType: 'none'
+    };
+  }
+
+  // Sort trades by date to ensure chronological order
+  const sortedTrades = [...trades].sort((a, b) => new Date(a.tradeDate) - new Date(b.tradeDate));
+  
+  let maxConsecutiveWins = 0;
+  let maxConsecutiveLosses = 0;
+  let currentWinStreak = 0;
+  let currentLossStreak = 0;
+  let currentStreak = 0;
+  let currentStreakType = 'none';
+
+  sortedTrades.forEach((trade, index) => {
+    const isWin = trade.pnl > 0;
+    const isLoss = trade.pnl < 0;
+
+    if (isWin) {
+      currentWinStreak++;
+      currentLossStreak = 0;
+      maxConsecutiveWins = Math.max(maxConsecutiveWins, currentWinStreak);
+      
+      // Update current streak for the most recent trades
+      if (index === sortedTrades.length - 1 || currentStreakType === 'win') {
+        currentStreak = currentWinStreak;
+        currentStreakType = 'win';
+      }
+    } else if (isLoss) {
+      currentLossStreak++;
+      currentWinStreak = 0;
+      maxConsecutiveLosses = Math.max(maxConsecutiveLosses, currentLossStreak);
+      
+      // Update current streak for the most recent trades
+      if (index === sortedTrades.length - 1 || currentStreakType === 'loss') {
+        currentStreak = currentLossStreak;
+        currentStreakType = 'loss';
+      }
+    } else {
+      // Breakeven trade breaks both streaks
+      currentWinStreak = 0;
+      currentLossStreak = 0;
+      currentStreak = 0;
+      currentStreakType = 'breakeven';
+    }
+  });
+
+  return {
+    maxConsecutiveWins,
+    maxConsecutiveLosses,
+    currentStreak,
+    currentStreakType
+  };
+}
+
+function calculateLargestWinLoss(trades) {
+  if (trades.length === 0) {
+    return {
+      largestWin: 0,
+      largestLoss: 0,
+      largestWinTrade: null,
+      largestLossTrade: null
+    };
+  }
+
+  const winningTrades = trades.filter(trade => trade.pnl > 0);
+  const losingTrades = trades.filter(trade => trade.pnl < 0);
+
+  let largestWin = 0;
+  let largestWinTrade = null;
+  let largestLoss = 0;
+  let largestLossTrade = null;
+
+  if (winningTrades.length > 0) {
+    largestWinTrade = winningTrades.reduce((max, trade) => 
+      trade.pnl > max.pnl ? trade : max
+    );
+    largestWin = largestWinTrade.pnl;
+  }
+
+  if (losingTrades.length > 0) {
+    largestLossTrade = losingTrades.reduce((min, trade) => 
+      trade.pnl < min.pnl ? trade : min
+    );
+    largestLoss = Math.abs(largestLossTrade.pnl);
+  }
+
+  return {
+    largestWin,
+    largestLoss,
+    largestWinTrade,
+    largestLossTrade
+  };
+}
+
+function calculateRecoveryFactor(trades) {
+  if (trades.length === 0) return 0;
+
+  const totalPnL = trades.reduce((sum, trade) => sum + trade.pnl, 0);
+  
+  // Calculate equity curve for max drawdown
+  const equityCurve = [];
+  let cumulative = 0;
+  
+  // Sort trades by date
+  const sortedTrades = [...trades].sort((a, b) => new Date(a.tradeDate) - new Date(b.tradeDate));
+  
+  sortedTrades.forEach(trade => {
+    cumulative += trade.pnl;
+    equityCurve.push(cumulative);
+  });
+
+  const { maxDrawdown } = calculateMaxDrawdown(equityCurve);
+
+  if (maxDrawdown === 0) return totalPnL > 0 ? Infinity : 0;
+  
+  return totalPnL / maxDrawdown;
+}
+
+function calculatePayoffRatio(trades) {
+  const avgWin = calculateAverageWin(trades);
+  const avgLoss = Math.abs(calculateAverageLoss(trades));
+
+  if (avgLoss === 0) return avgWin > 0 ? Infinity : 0;
+  if (avgWin === 0) return 0;
+
+  return avgWin / avgLoss;
+}
+
+function calculateWinLossRatio(trades) {
+  if (trades.length === 0) return 0;
+
+  const winningTrades = trades.filter(trade => trade.pnl > 0).length;
+  const losingTrades = trades.filter(trade => trade.pnl < 0).length;
+
+  if (losingTrades === 0) return winningTrades > 0 ? Infinity : 0;
+  if (winningTrades === 0) return 0;
+
+  return winningTrades / losingTrades;
+}
+
+function calculateTradeMetrics(trades) {
+  if (trades.length === 0) {
+    return {
+      totalTrades: 0,
+      winningTrades: 0,
+      losingTrades: 0,
+      breakEvenTrades: 0,
+      totalPnL: 0,
+      grossProfit: 0,
+      grossLoss: 0
+    };
+  }
+
+  const winningTrades = trades.filter(trade => trade.pnl > 0);
+  const losingTrades = trades.filter(trade => trade.pnl < 0);
+  const breakEvenTrades = trades.filter(trade => trade.pnl === 0);
+
+  const totalPnL = trades.reduce((sum, trade) => sum + trade.pnl, 0);
+  const grossProfit = winningTrades.reduce((sum, trade) => sum + trade.pnl, 0);
+  const grossLoss = Math.abs(losingTrades.reduce((sum, trade) => sum + trade.pnl, 0));
+
+  return {
+    totalTrades: trades.length,
+    winningTrades: winningTrades.length,
+    losingTrades: losingTrades.length,
+    breakEvenTrades: breakEvenTrades.length,
+    totalPnL,
+    grossProfit,
+    grossLoss
+  };
+}
+
+function calculateAdvancedTradeStats(trades) {
+  const metrics = calculateTradeMetrics(trades);
+  const streaks = calculateConsecutiveStreaks(trades);
+  const { largestWin, largestLoss } = calculateLargestWinLoss(trades);
+  
+  return {
+    // Basic metrics (existing)
+    totalTrades: metrics.totalTrades,
+    winRate: calculateWinRate(trades),
+    totalPnL: metrics.totalPnL,
+    avgWin: calculateAverageWin(trades),
+    avgLoss: calculateAverageLoss(trades),
+    
+    // Advanced metrics (new)
+    profitFactor: calculateProfitFactor(trades),
+    expectancy: calculateExpectancy(trades),
+    payoffRatio: calculatePayoffRatio(trades),
+    winLossRatio: calculateWinLossRatio(trades),
+    recoveryFactor: calculateRecoveryFactor(trades),
+    
+    // Streak analysis
+    maxConsecutiveWins: streaks.maxConsecutiveWins,
+    maxConsecutiveLosses: streaks.maxConsecutiveLosses,
+    currentStreak: streaks.currentStreak,
+    currentStreakType: streaks.currentStreakType,
+    
+    // Extreme trades
+    largestWin,
+    largestLoss,
+    
+    // Detailed metrics
+    grossProfit: metrics.grossProfit,
+    grossLoss: metrics.grossLoss,
+    winningTrades: metrics.winningTrades,
+    losingTrades: metrics.losingTrades,
+    breakEvenTrades: metrics.breakEvenTrades
+  };
+}
+
 module.exports = {
+  // Existing functions
   calculateWinRate,
   calculateProfitFactor,
   calculateExpectancy,
@@ -249,5 +469,14 @@ module.exports = {
   groupByTimeframe,
   calculateDailyPnL,
   calculateWeekdayStats,
-  calculateHourlyStats
+  calculateHourlyStats,
+  
+  // New advanced functions
+  calculateConsecutiveStreaks,
+  calculateLargestWinLoss,
+  calculateRecoveryFactor,
+  calculatePayoffRatio,
+  calculateWinLossRatio,
+  calculateTradeMetrics,
+  calculateAdvancedTradeStats
 };

@@ -1,194 +1,275 @@
-# 🔴🟢🔵 Trading Journal App - TDD徹底開発
+# 📊 Trading Journal App
 
-[![TDD CI](https://github.com/your-username/trading-journal-app/workflows/TDD%20Continuous%20Integration/badge.svg)](https://github.com/your-username/trading-journal-app/actions)
+[![TDD CI](https://github.com/weebojp/tradingjournalapp/workflows/TDD%20Continuous%20Integration/badge.svg)](https://github.com/weebojp/tradingjournalapp/actions)
 [![Coverage](https://img.shields.io/badge/coverage-90%25+-brightgreen.svg)](./coverage/lcov-report/index.html)
 [![Test Driven](https://img.shields.io/badge/development-test--driven-red.svg)](./docs/TDD_GUIDE.md)
+[![React](https://img.shields.io/badge/frontend-React%2018-61dafb.svg)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/language-TypeScript-3178c6.svg)](https://www.typescriptlang.org/)
 
-**テスト駆動開発（TDD）を徹底したトレーディングジャーナルアプリケーション**
+A comprehensive trading journal application for tracking trades, analyzing performance, and improving trading strategies. Built with modern web technologies and following Test-Driven Development (TDD) principles.
 
-## 🎯 プロジェクトの特徴
+## 🌟 Features
 
-- **🔴🟢🔵 100% TDD開発**: すべての機能はRed-Green-Refactorサイクルで開発
-- **📊 高カバレッジ**: 90%以上のテストカバレッジを維持
-- **🤖 自動化されたCI/CD**: GitHub Actionsでテスト・品質チェックを自動実行
-- **📝 包括的テスト**: ユニット・統合・E2Eテストをすべて実装
+### 📈 Trade Management
+- **Create & Edit Trades**: Record entry/exit prices, position sizes, leverage, and notes
+- **Real-time P&L Calculation**: Automatic profit/loss calculations with percentage returns
+- **Trade History**: Full history with advanced filtering and pagination
+- **Bulk Operations**: Close multiple trades at once
 
-## 🚀 クイックスタート
+### 📊 Analytics & Insights
+- **Performance Dashboard**: Key metrics including win rate, total P&L, average win/loss
+- **Interactive Charts**: Cumulative P&L visualization with hover details
+- **Trade Statistics**: Detailed performance analysis by symbol, time period, and strategy
+- **Export Functionality**: Export trade data for external analysis
 
-### 1. プロジェクトのセットアップ
+### 🎯 Strategy Management
+- **Strategy Tracking**: Organize trades by trading strategies
+- **Performance Comparison**: Compare effectiveness across different strategies
+- **Tags & Categories**: Flexible tagging system for trade classification
+
+### 🎨 User Experience
+- **Dark Mode Support**: Eye-friendly trading in low-light conditions
+- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
+- **Keyboard Shortcuts**: Efficient navigation with customizable hotkeys
+- **Help System**: Interactive tooltips and onboarding tour
+- **Undo/Redo**: Safely revert accidental changes
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+ and npm
+- Git
+
+### Installation
+
 ```bash
-# リポジトリをクローン
-git clone https://github.com/your-username/trading-journal-app.git
-cd trading-journal-app
+# Clone the repository
+git clone https://github.com/weebojp/tradingjournalapp.git
+cd tradingjournalapp
 
-# 依存関係をインストール
+# Install dependencies
 npm install
+cd client && npm install && cd ..
 
-# TDD監視モードを開始
-npm run tdd:watch
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration
+
+# Set up database
+npx prisma db push
+npx prisma generate
+
+# Seed database with sample data (optional)
+npm run seed
 ```
 
-### 2. 新機能の開発（TDD）
-```bash
-# 1. 新しいテストファイルを生成
-npm run tdd:generate
+### Running the Application
 
-# 2. 🔴 Red: 失敗するテストを書く
-# 3. 🟢 Green: 最小限の実装でテストを通す
-# 4. 🔵 Refactor: コードを改善する
+```bash
+# Start the backend server
+npm run dev
+
+# In a new terminal, start the frontend
+cd client && npm start
+
+# Access the application
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:8080
 ```
 
-### 3. テストとカバレッジの確認
-```bash
-# すべてのテストを実行
-npm test
+## 🛠️ Technology Stack
 
-# カバレッジレポートを生成
+### Frontend
+- **React 18** - UI library
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Utility-first styling
+- **React Router** - Client-side routing
+- **Axios** - API communication
+- **Recharts** - Data visualization
+
+### Backend
+- **Node.js** - Runtime environment
+- **Express.js** - Web framework
+- **Prisma** - ORM and database toolkit
+- **SQLite** - Database (easily switchable to PostgreSQL/MySQL)
+- **JWT** - Authentication
+- **bcrypt** - Password hashing
+
+### Development & Testing
+- **Jest** - Testing framework
+- **React Testing Library** - Component testing
+- **Supertest** - API testing
+- **ESLint** - Code linting
+- **GitHub Actions** - CI/CD
+
+## 📁 Project Structure
+
+```
+tradingjournalapp/
+├── client/                 # React frontend application
+│   ├── public/            # Static assets
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   │   ├── analytics/ # Analytics & charts
+│   │   │   ├── auth/      # Authentication
+│   │   │   ├── common/    # Shared components
+│   │   │   ├── dashboard/ # Dashboard views
+│   │   │   ├── help/      # Help system
+│   │   │   ├── strategies/# Strategy management
+│   │   │   └── trades/    # Trade components
+│   │   ├── contexts/      # React contexts
+│   │   ├── hooks/         # Custom hooks
+│   │   ├── services/      # API services
+│   │   └── utils/         # Utility functions
+├── src/                   # Backend application
+│   ├── middleware/        # Express middleware
+│   ├── models/           # Data models
+│   ├── routes/           # API routes
+│   ├── services/         # Business logic
+│   └── utils/            # Helper functions
+├── tests/                # Backend tests
+│   ├── unit/             # Unit tests
+│   ├── integration/      # Integration tests
+│   └── e2e/              # End-to-end tests
+├── prisma/               # Database schema
+├── scripts/              # Development scripts
+└── docs/                 # Documentation
+```
+
+## 🔧 Available Scripts
+
+### Root Directory
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start backend in development mode |
+| `npm test` | Run backend tests in watch mode |
+| `npm run test:ci` | Run tests with coverage |
+| `npm run lint` | Lint backend code |
+| `npm run seed` | Seed database with sample data |
+
+### Client Directory
+| Command | Description |
+|---------|-------------|
+| `npm start` | Start React development server |
+| `npm run build` | Build for production |
+| `npm test` | Run frontend tests |
+| `npm run lint` | Lint frontend code |
+
+## 🔴🟢🔵 Test-Driven Development
+
+This project follows strict TDD principles:
+
+1. **Red Phase**: Write failing tests first
+2. **Green Phase**: Implement minimal code to pass tests
+3. **Refactor Phase**: Improve code while keeping tests green
+
+### Running Tests
+```bash
+# Backend tests with coverage
+npm run test:ci
+
+# Frontend tests
+cd client && npm test
+
+# Generate coverage report
 npm run coverage
-
-# カバレッジ閾値をチェック
-npm run coverage:check
 ```
 
-## 📂 プロジェクト構造
+### Coverage Requirements
+- Statements: 90%+
+- Branches: 90%+
+- Functions: 90%+
+- Lines: 90%+
 
-```
-trading-journal-app/
-├── src/                    # アプリケーションコード
-│   ├── controllers/        # APIコントローラー
-│   ├── models/            # データモデル
-│   ├── services/          # ビジネスロジック
-│   ├── utils/             # ユーティリティ関数
-│   └── app.js             # Expressアプリケーション
-├── tests/                 # テストファイル
-│   ├── unit/              # ユニットテスト
-│   ├── integration/       # 統合テスト
-│   ├── e2e/               # E2Eテスト
-│   └── setup.js           # テストセットアップ
-├── scripts/               # 開発支援スクリプト
-│   ├── tdd-watch.js       # TDD監視モード
-│   ├── test-generator.js  # テストファイル自動生成
-│   └── coverage-check.js  # カバレッジチェック
-├── docs/                  # ドキュメント
-│   └── TDD_GUIDE.md       # TDD開発ガイド
-└── .github/workflows/     # CI/CD設定
-    └── tdd-ci.yml         # TDDワークフロー
-```
+## 📱 Screenshots
 
-## 🔧 利用可能なコマンド
+### Dashboard
+The main dashboard shows key performance metrics and recent trades.
 
-### テスト関連
-| コマンド | 説明 |
-|---------|------|
-| `npm test` | 監視モードでテスト実行 |
-| `npm run test:ci` | CI用テスト実行（カバレッジ付き） |
-| `npm run test:unit` | ユニットテストのみ実行 |
-| `npm run test:integration` | 統合テストのみ実行 |
-| `npm run test:e2e` | E2Eテストのみ実行 |
+### Trade Management
+Easy-to-use interface for adding, editing, and closing trades.
 
-### TDD支援ツール
-| コマンド | 説明 |
-|---------|------|
-| `npm run tdd:watch` | TDD専用監視モード |
-| `npm run tdd:generate` | 新しいテストファイル生成 |
-| `npm run coverage:check` | カバレッジ閾値チェック |
-| `npm run coverage:report` | HTMLカバレッジレポート表示 |
+### Analytics
+Interactive charts and detailed performance analytics.
 
-### 開発・品質管理
-| コマンド | 説明 |
-|---------|------|
-| `npm run dev` | 開発サーバー起動 |
-| `npm run lint` | ESLintでコード品質チェック |
-| `npm run lint:fix` | ESLintで自動修正 |
+## 🔐 Environment Variables
 
-## 📊 品質メトリクス
+Create a `.env` file in the root directory:
 
-### テストカバレッジ要件
-- **Statements（文）**: 90%以上
-- **Branches（分岐）**: 90%以上
-- **Functions（関数）**: 90%以上
-- **Lines（行）**: 90%以上
+```env
+# Server
+PORT=8080
+NODE_ENV=development
 
-### CI/CDでの自動チェック
-- ✅ すべてのテストが成功
-- ✅ カバレッジ閾値をクリア
-- ✅ ESLintチェックに合格
-- ✅ 依存関係の脆弱性チェック
+# Database
+DATABASE_URL="file:./prisma/dev.db"
 
-## 🔄 TDD開発サイクル
+# Authentication
+JWT_SECRET=your-secret-key-here
 
-このプロジェクトでは以下のTDDサイクルを厳格に守ります：
-
-### 🔴 Red フェーズ
-1. **失敗するテストを書く**
-2. テストが期待通りに失敗することを確認
-3. 実装は行わない
-
-### 🟢 Green フェーズ
-1. **テストを通す最小限のコードを書く**
-2. 美しいコードでなくても良い
-3. とにかくテストを通すことに集中
-
-### 🔵 Refactor フェーズ
-1. **機能を変更せずにコードを改善**
-2. 重複を削除
-3. 可読性を向上
-4. 各ステップでテストが通ることを確認
-
-## 📚 ドキュメント
-
-- [TDD開発ガイド](./docs/TDD_GUIDE.md) - 詳細なTDD実践方法
-- [API仕様書](./docs/API.md) - RESTful API仕様
-- [アーキテクチャ](./docs/ARCHITECTURE.md) - システム設計
-- [貢献ガイド](./docs/CONTRIBUTING.md) - 開発への参加方法
-
-## 🤝 開発への参加
-
-このプロジェクトへの貢献は大歓迎です！以下の原則に従ってください：
-
-1. **すべての新機能はTDDで開発**
-2. **プルリクエスト前にカバレッジ要件を満たす**
-3. **テストが失敗する理由を明確にする**
-4. **リファクタリング時もテストが通ることを確認**
-
-### 開発フロー
-```bash
-# 1. フィーチャーブランチを作成
-git checkout -b feature/new-feature
-
-# 2. TDD監視モードを開始
-npm run tdd:watch
-
-# 3. Red-Green-Refactorサイクルで開発
-npm run tdd:generate  # テストファイル生成
-
-# 4. 品質チェック
-npm run lint
-npm run coverage:check
-
-# 5. プルリクエストを作成
-git push origin feature/new-feature
+# Frontend URL (for CORS)
+CLIENT_URL=http://localhost:3000
 ```
 
-## 🛠️ 技術スタック
+## 🤝 Contributing
 
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Testing**: Jest + Supertest
-- **Code Quality**: ESLint
-- **CI/CD**: GitHub Actions
-- **Coverage**: Jest Coverage + Codecov
+We welcome contributions! Please follow these guidelines:
 
-## 📈 開発状況
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Follow TDD**: Write tests first, then implementation
+4. **Maintain coverage**: Ensure 90%+ test coverage
+5. **Commit changes**: Use clear, descriptive commit messages
+6. **Push to branch**: `git push origin feature/amazing-feature`
+7. **Open Pull Request**: Describe your changes clearly
 
-- 🔴 **Red**: ![Red](https://img.shields.io/badge/failing-tests-red.svg)
-- 🟢 **Green**: ![Green](https://img.shields.io/badge/passing-tests-green.svg)
-- 🔵 **Refactor**: ![Refactor](https://img.shields.io/badge/clean-code-blue.svg)
+### Commit Convention
+We follow conventional commits:
+- `feat:` New features
+- `fix:` Bug fixes
+- `docs:` Documentation changes
+- `style:` Code style changes
+- `refactor:` Code refactoring
+- `test:` Test additions/changes
+- `chore:` Build process or auxiliary tool changes
 
-## 📄 ライセンス
+## 📈 Roadmap
 
-MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照してください。
+- [ ] Multi-currency support
+- [ ] Advanced charting indicators
+- [ ] Mobile app (React Native)
+- [ ] Social features (share strategies)
+- [ ] AI-powered trade analysis
+- [ ] Automated strategy backtesting
+- [ ] Integration with broker APIs
+- [ ] Real-time market data
+
+## 🐛 Known Issues
+
+- Chart hover accuracy on mobile devices
+- Large dataset performance optimization needed
+- Export function limited to CSV format
+
+## 📚 Documentation
+
+- [TDD Development Guide](./docs/TDD_GUIDE.md) - Detailed TDD practices
+- [API Documentation](./docs/API.md) - RESTful API endpoints
+- [Architecture](./docs/ARCHITECTURE.md) - System design decisions
+- [Deployment Guide](./docs/DEPLOYMENT.md) - Production deployment
+
+## 🙏 Acknowledgments
+
+- Built with ❤️ using React and Node.js
+- UI components inspired by Tailwind UI
+- Charts powered by Recharts
+- Icons from Heroicons
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-**🔴🟢🔵 TDDで品質の高いコードを一緒に作りましょう！** 
+**Happy Trading! 📈🚀**
+
+For support, email: support@tradingjournalapp.com or open an issue on GitHub.
